@@ -54,6 +54,17 @@ button {
 <div id="canvas-container"></div>
 
 <div class="controls">
+    <div id="info" style="
+position:absolute;
+top:20px;
+left:20px;
+background:rgba(0,0,0,0.7);
+padding:15px;
+border-radius:10px;
+font-size:14px;">
+Amplitudo: 1<br>
+Energi: 1
+</div>
     <button onclick="playGong()">🔴 Mainkan Gong</button>
     <button onclick="showEnergy()">⚡ Lihat Energi</button>
     <button onclick="resetScene()">🔄 Reset</button>
@@ -110,17 +121,20 @@ gong.rotation.x = Math.PI / 2;
 gong.castShadow = true;
 gong.position.y = 2;
 scene.add(gong);
+    document.getElementById("loading").style.display = "none";
 
 // ===== ANIMASI =====
 let vibrating = false;
+let amplitude = 1;
+let energy = 1;
 
 function animate() {
   requestAnimationFrame(animate);
 
   if (vibrating) {
     const t = Date.now() * 0.05;
-    gong.scale.x = 1 + Math.sin(t) * 0.03;
-    gong.scale.y = 1 + Math.sin(t) * 0.03;
+    gong.scale.x = 1 + Math.sin(t) * 0.03 * amplitude;
+    gong.scale.y = 1 + Math.sin(t) * 0.03 * amplitude;
   } else {
     gong.scale.set(1,1,1);
   }
@@ -131,10 +145,24 @@ function animate() {
 }
 
 animate();
+    window.addEventListener("resize", () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+    
 
 // ===== INTERAKSI =====
+// ===== INTERAKSI =====
 function playGong() {
+
+  amplitude = Math.random() * 2 + 0.5;
+  energy = amplitude * amplitude; // E ∝ A²
   vibrating = true;
+
+  document.getElementById("info").innerHTML =
+    "Amplitudo: " + amplitude.toFixed(2) +
+    "<br>Energi: " + energy.toFixed(2);
 
   if ("speechSynthesis" in window) {
     const u = new SpeechSynthesisUtterance("Ini adalah Gong. Suara muncul karena getaran.");
@@ -142,8 +170,11 @@ function playGong() {
     speechSynthesis.speak(u);
   }
 
-  setTimeout(()=> vibrating = false, 1000);
+  setTimeout(() => {
+    vibrating = false;
+  }, 1000);
 }
+
 function showEnergy() {
   const original = gong.material.color.getHex();
   gong.material.color.setHex(0xff0000);
