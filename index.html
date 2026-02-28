@@ -1,333 +1,161 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Belajar Gamelan Interaktif</title>
-    <!-- Load Three.js untuk 3D -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <!-- Load QRCode.js untuk membuat QR (Opsional jika butuh生成 di web) -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Belajar Gamelan Interaktif</title>
 
-    <style>
-        :root {
-            --primary: #d4af37; /* Gold */
-            --bg: #1a1a1a;
-            --text: #ffffff;
-            --accent: #ff5722;
-        }
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
-        body {
-            margin: 0;
-            font-family: 'Segoe UI', sans-serif;
-            background-color: var(--bg);
-            color: var(--text);
-            overflow: hidden;
-            touch-action: none; /* Prevent scrolling on mobile */
-        }
+<style>
+body {
+    margin: 0;
+    overflow: hidden;
+    background: #111;
+    color: white;
+    font-family: Arial, sans-serif;
+}
 
-        /* UI Overlay */
-        #ui-layer {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            padding: 20px;
-            box-sizing: border-box;
-        }
+#canvas-container {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+}
 
-        /* Controls */
-        .controls {
-            pointer-events: auto;
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            justify-content: center;
-        }
+.controls {
+    position: absolute;
+    bottom: 20px;
+    width: 100%;
+    text-align: center;
+}
 
-        button {
-            background: var(--primary);
-            border: none;
-            padding: 12px 20px;
-            border-radius: 30px;
-            color: #000;
-            font-weight: bold;
-            cursor: pointer;
-            font-size: 1rem;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-            transition: transform 0.1s;
-        }
+button {
+    padding: 12px 20px;
+    margin: 5px;
+    border: none;
+    border-radius: 25px;
+    background: gold;
+    font-weight: bold;
+    cursor: pointer;
+}
 
-        button:active { transform: scale(0.95); }
-
-        /* 3D Canvas */
-        #canvas-container {
-            position: absolute;
-            top: 0;
-            left: 0;
-            z-index: 1;
-            width: 100%;
-            height: 100%;
-        }
-
-        /* Visualisasi Gelombang Suara */
-        #wave-canvas {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 2;
-            pointer-events: none;
-            opacity: 0;
-            transition: opacity 0.3s;
-        }
-
-        /* Quiz Section */
-        #quiz-section {
-            position: absolute;
-            bottom: 0;
-            width: 100%;
-            background: rgba(0,0,0,0.8);
-            padding: 20px;
-            z-index: 10;
-            display: none; /* Default hidden */
-            text-align: center;
-        }
-
-        .quiz-item {
-            display: inline-block;
-            width: 80px;
-            height: 80px;
-            background: #555;
-            margin: 10px;
-            border-radius: 10px;
-            line-height: 80px;
-            cursor: grab;
-        }
-
-        .drop-zone {
-            width: 100px;
-            height: 100px;
-            border: 2px dashed #fff;
-            margin: 0 auto;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        /* TUNAGRAHITA MODE STYLES */
-        body.tuna-mode {
-            background-color: #000000;
-        }
-        
-        body.tuna-mode #ui-layer {
-            justify-content: center;
-        }
-
-        body.tuna-mode button {
-            font-size: 2rem;
-            padding: 20px 40px;
-            background-color: #FFFF00; /* High contrast Yellow */
-            color: #000;
-            border: 4px solid #fff;
-            margin-bottom: 20px;
-        }
-
-        body.tuna-mode h1 {
-            font-size: 3rem;
-            text-align: center;
-            background: #000;
-            padding: 10px;
-            border: 3px solid #FFFF00;
-        }
-
-        body.tuna-mode .controls {
-            flex-direction: column;
-            width: 100%;
-        }
-
-        /* Loading Spinner */
-        #loading {
-            position: absolute;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            color: white;
-            z-index: 0;
-        }
-
-    </style>
+#loading {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+</style>
 </head>
+
 <body>
 
-    <div id="loading">Memuat Model 3D...</div>
+<div id="loading">Memuat 3D...</div>
+<div id="canvas-container"></div>
 
-    <div id="canvas-container"></div>
-    <canvas id="wave-canvas" width="500" height="500"></canvas>
+<div class="controls">
+    <button onclick="playGong()">🔴 Mainkan Gong</button>
+    <button onclick="showEnergy()">⚡ Lihat Energi</button>
+    <button onclick="resetScene()">🔄 Reset</button>
+</div>
 
-    <div id="ui-layer">
-        <h1 id="title-text">Gamelan: Gong</h1>
-        
-        <!-- Kontrol Utama -->
-        <div class="controls">
-            <button onclick="toggleMode()">👁️ Mode Tunagrahita</button>
-            <button onclick="triggerInteraction()">🔴 Ketuk untuk Mainkan</button>
-            <button onclick="showVibration()">💥 Lihat Getaran</button>
-            <button onclick="showEnergy()">⚡ Lihat Energi</button>
-            <button onclick="resetView()">🔄 Ulangi</button>
-        </div>
-    </div>
+<script>
 
-    <!-- Mini Kuis -->
-    <div id="quiz-section">
-        <h3>Mini Kuis: Seret gambar Gamelan ke Kotak Energi!</h3>
-        <div>
-            <div class="quiz-item" draggable="true" id="drag1">🥁</div>
-            <div class="quiz-item" draggable="true" id="drag2">🎸</div>
-        </div>
-        <div class="drop-zone" id="drop1">Tempat Energi</div>
-    </div>
+// ====== THREE JS SETUP ======
+const scene = new THREE.Scene();
 
-    <script>
-        // --- 1. SETUP THREE.JS (3D MODEL) ---
-        const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
-        
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        document.getElementById('canvas-container').appendChild(renderer.domElement);
+const camera = new THREE.PerspectiveCamera(
+    75,
+    window.innerWidth / window.innerHeight,
+    0.1,
+    1000
+);
 
-        // Lighting
-        const ambientLight = new THREE.AmbientLight(0x404040);
-        scene.add(ambientLight);
-        const pointLight = new THREE.PointLight(0xffffff, 1);
-        pointLight.position.set(10, 10, 10);
-        scene.add(pointLight);
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.getElementById("canvas-container").appendChild(renderer.domElement);
 
-        // Simple Gamelan Gong Representation (Cylinder)
-        const geometry = new THREE.CylinderGeometry(3, 3, 0.5, 32);
-        const material = new THREE.MeshStandardMaterial({ color: 0xd4af37, metalness: 0.7, roughness: 0.3 });
-        const gong = new THREE.Mesh(geometry, material);
-        gong.rotation.x = Math.PI / 2;
-        scene.add(gong);
+// LIGHTING (lebih terang supaya tidak gelap)
+const ambient = new THREE.AmbientLight(0xffffff, 1);
+scene.add(ambient);
 
-        // Add some "Keys" (Saron representation)
-        const boxGeo = new THREE.BoxGeometry(1, 4, 0.2);
-        const boxMat = new THREE.MeshStandardMaterial({ color: 0xd4af37 });
-        const key1 = new THREE.Mesh(boxGeo, boxMat);
-        key1.position.set(0, -2, 0);
-        scene.add(key1);
+const light = new THREE.PointLight(0xffffff, 1);
+light.position.set(10, 10, 10);
+scene.add(light);
 
-        camera.position.z = 8;
+// GONG (Cylinder)
+const geometry = new THREE.CylinderGeometry(3, 3, 0.5, 32);
+const material = new THREE.MeshStandardMaterial({
+    color: 0xd4af37,
+    metalness: 0.8,
+    roughness: 0.3
+});
 
-        // Animation Loop
-        let isVibrating = false;
-        function animate() {
-            requestAnimationFrame(animate);
+const gong = new THREE.Mesh(geometry, material);
+gong.rotation.x = Math.PI / 2;
+scene.add(gong);
 
-            // Getaran Animasi
-            if (isVibrating) {
-                const time = Date.now() * 0.05;
-                gong.position.x = Math.sin(time) * 0.1;
-                key1.rotation.z = Math.sin(time * 1.5) * 0.1;
-            } else {
-                gong.position.x = 0;
-                key1.rotation.z = 0;
-            }
+camera.position.z = 8;
+camera.position.y = 2;
+camera.lookAt(0,0,0);
 
-            renderer.render(scene, camera);
-        }
-        animate();
+// ===== ANIMASI =====
+let vibrating = false;
 
-        // Hide loading
-        document.getElementById('loading').style.display = 'none';
+function animate() {
+    requestAnimationFrame(animate);
 
+    if (vibrating) {
+        const t = Date.now() * 0.05;
+        gong.position.x = Math.sin(t) * 0.1;
+    } else {
+        gong.position.x = 0;
+    }
 
-        // --- 2. INTERAKSI & AUDIO (SPEECH API) ---
-        
-        function triggerInteraction() {
-            // 1. Getaran
-            showVibration();
-            
-            // 2. Gelombang Suara
-            visualizeSoundWave();
+    gong.rotation.z += 0.003; // biar hidup
 
-            // 3. Audio Penjelasan (Text to Speech)
-            const teks = "Ini adalah Gong. Dipukul menghasilkan suara yang nyaring.";
-            speakText(teks);
+    renderer.render(scene, camera);
+}
 
-            // Tampilkan Kuis setelah 3 detik
-            setTimeout(() => {
-                document.getElementById('quiz-section').style.display = 'block';
-            }, 3000);
-        }
+animate();
 
-        function showVibration() {
-            isVibrating = true;
-            setTimeout(() => { isVibrating = false; }, 1000); // Berhenti setelah 1 detik
-        }
+document.getElementById("loading").style.display = "none";
 
-        function showEnergy() {
-            // Visualisasi energi sederhana (partikel/ubah warna)
-            const originalColor = gong.material.color.getHex();
-            gong.material.color.setHex(0xff0000); // Merah menyala
-            
-            // Efek Scale
-            let scale = 1;
-            const interval = setInterval(() => {
-                scale += 0.1;
-                gong.scale.set(scale, scale, scale);
-                if(scale > 1.5) clearInterval(interval);
-            }, 50);
+// ===== INTERAKSI =====
 
-            setTimeout(() => {
-                gong.material.color.setHex(originalColor);
-                gong.scale.set(1,1,1);
-            }, 1000);
-        }
+function playGong() {
+    vibrating = true;
 
-        function resetView() {
-            isVibrating = false;
-            gong.rotation.set(0,0,0);
-            camera.position.set(0,0,8);
-            document.getElementById('wave-canvas').style.opacity = 0;
-            document.getElementById('quiz-section').style.display = 'none';
-        }
+    // suara text to speech
+    if ("speechSynthesis" in window) {
+        const u = new SpeechSynthesisUtterance("Ini adalah Gong. Suara dihasilkan karena getaran.");
+        u.lang = "id-ID";
+        speechSynthesis.speak(u);
+    }
 
-        function visualizeSoundWave() {
-            const canvas = document.getElementById('wave-canvas');
-            const ctx = canvas.getContext('2d');
-            canvas.style.opacity = 1;
-            
-            let radius = 10;
-            function draw() {
-                ctx.clearRect(0, 0, 500, 500);
-                ctx.beginPath();
-                ctx.arc(250, 250, radius, 0, 2 * Math.PI);
-                ctx.strokeStyle = `rgba(255, 87, 34, ${1 - radius/200})`;
-                ctx.lineWidth = 5;
-                ctx.stroke();
+    setTimeout(() => {
+        vibrating = false;
+    }, 1000);
+}
 
-                radius += 2;
-                if (radius < 200) requestAnimationFrame(draw);
-                else {
-                    radius = 10;
-                    canvas.style.opacity = 0;
-                }
-            }
-            draw();
-        }
+function showEnergy() {
+    const original = gong.material.color.getHex();
+    gong.material.color.setHex(0xff0000);
+    gong.scale.set(1.3,1.3,1.3);
 
-        // Menggunakan Web Speech API agar tidak perlu file MP3
-        function speakText(text) {
-            if ('speechSynthesis' in window) {
-                const utterance = new SpeechSynthesisUtterance(text);
-                utterance.lang = 'id-ID'; // Bahasa Indonesia
-                window.speechSynthesis.speak(utterance);
-            } else {
-                alert("Browser tidak mendukung Audio");
-            }
+    setTimeout(()=>{
+        gong.material.color.setHex(original);
+        gong.scale.set(1,1,1);
+    },800);
+}
+
+function resetScene() {
+    vibrating = false;
+    gong.scale.set(1,1,1);
+    camera.position.set(0,2,8);
+}
+
+</script>
+
+</body>
+</html>
