@@ -58,102 +58,93 @@ button {
     <button onclick="showEnergy()">⚡ Lihat Energi</button>
     <button onclick="resetScene()">🔄 Reset</button>
 </div>
-
 <script>
 
-// ====== THREE JS SETUP ======
+// ===== SCENE =====
 const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x111111);
 
+// ===== CAMERA =====
 const camera = new THREE.PerspectiveCamera(
-    75,
-    window.innerWidth / window.innerHeight,
-    0.1,
-    1000
+  60,
+  window.innerWidth / window.innerHeight,
+  0.1,
+  1000
 );
+camera.position.set(0, 3, 8);
+camera.lookAt(0, 0, 0);
 
+// ===== RENDERER =====
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true;
 document.getElementById("canvas-container").appendChild(renderer.domElement);
 
-// LIGHTING (lebih terang supaya tidak gelap)
-const ambient = new THREE.AmbientLight(0xffffff, 1);
+// ===== LIGHTING (lebih dramatis) =====
+const ambient = new THREE.AmbientLight(0xffffff, 0.6);
 scene.add(ambient);
 
-const light = new THREE.PointLight(0xffffff, 1);
-light.position.set(10, 10, 10);
-scene.add(light);
+const spotLight = new THREE.SpotLight(0xffffff, 1);
+spotLight.position.set(5, 10, 5);
+spotLight.castShadow = true;
+scene.add(spotLight);
 
-// GONG (Cylinder)
-const geometry = new THREE.CylinderGeometry(3, 3, 0.5, 32);
+// ===== FLOOR (biar gak ngambang) =====
+const floorGeo = new THREE.PlaneGeometry(30, 30);
+const floorMat = new THREE.MeshStandardMaterial({ color: 0x222222 });
+const floor = new THREE.Mesh(floorGeo, floorMat);
+floor.rotation.x = -Math.PI / 2;
+floor.receiveShadow = true;
+scene.add(floor);
+
+// ===== GONG =====
+const geometry = new THREE.CylinderGeometry(3, 3, 0.6, 64);
 const material = new THREE.MeshStandardMaterial({
-    color: 0xd4af37,
-    metalness: 0.8,
-    roughness: 0.3
+  color: 0xd4af37,
+  metalness: 1,
+  roughness: 0.2
 });
 
 const gong = new THREE.Mesh(geometry, material);
 gong.rotation.x = Math.PI / 2;
+gong.castShadow = true;
+gong.position.y = 2;
 scene.add(gong);
-
-camera.position.z = 8;
-camera.position.y = 2;
-camera.lookAt(0,0,0);
 
 // ===== ANIMASI =====
 let vibrating = false;
 
 function animate() {
-    requestAnimationFrame(animate);
+  requestAnimationFrame(animate);
 
-    if (vibrating) {
-        const t = Date.now() * 0.05;
-        gong.position.x = Math.sin(t) * 0.1;
-    } else {
-        gong.position.x = 0;
-    }
+  if (vibrating) {
+    const t = Date.now() * 0.05;
+    gong.scale.x = 1 + Math.sin(t) * 0.03;
+    gong.scale.y = 1 + Math.sin(t) * 0.03;
+  } else {
+    gong.scale.set(1,1,1);
+  }
 
-    gong.rotation.z += 0.003; // biar hidup
+  gong.rotation.z += 0.002;
 
-    renderer.render(scene, camera);
+  renderer.render(scene, camera);
 }
 
 animate();
 
-document.getElementById("loading").style.display = "none";
-
 // ===== INTERAKSI =====
-
 function playGong() {
-    vibrating = true;
+  vibrating = true;
 
-    // suara text to speech
-    if ("speechSynthesis" in window) {
-        const u = new SpeechSynthesisUtterance("Ini adalah Gong. Suara dihasilkan karena getaran.");
-        u.lang = "id-ID";
-        speechSynthesis.speak(u);
-    }
+  if ("speechSynthesis" in window) {
+    const u = new SpeechSynthesisUtterance("Ini adalah Gong. Suara muncul karena getaran.");
+    u.lang = "id-ID";
+    speechSynthesis.speak(u);
+  }
 
-    setTimeout(() => {
-        vibrating = false;
-    }, 1000);
+  setTimeout(()=> vibrating = false, 1000);
 }
 
-function showEnergy() {
-    const original = gong.material.color.getHex();
-    gong.material.color.setHex(0xff0000);
-    gong.scale.set(1.3,1.3,1.3);
-
-    setTimeout(()=>{
-        gong.material.color.setHex(original);
-        gong.scale.set(1,1,1);
-    },800);
-}
-
-function resetScene() {
-    vibrating = false;
-    gong.scale.set(1,1,1);
-    camera.position.set(0,2,8);
-}
 
 </script>
 
